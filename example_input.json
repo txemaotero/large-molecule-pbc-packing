@@ -1,0 +1,37 @@
+{
+    "packmol_executable": "packmol",
+    "gromacs_executable": "gmx",
+    "large_molecules": {
+        "PEO": {
+            "replace": true,
+            "amount": 20,
+            "paths": [
+                "../molecules/large/peo_0.pdb",
+                "../molecules/large/peo_1.pdb",
+                "../molecules/large/peo_2.pdb",
+                "../molecules/large/peo_3.pdb",
+                "../molecules/large/peo_4.pdb",
+                "../molecules/large/peo_5.pdb",
+                "../molecules/large/peo_6.pdb",
+                "../molecules/large/peo_7.pdb",
+                "../molecules/large/peo_8.pdb",
+                "../molecules/large/peo_9.pdb",
+                "../molecules/large/peo_10.pdb",
+                "../molecules/large/peo_11.pdb",
+                "../molecules/large/peo_12.pdb",
+                "../molecules/large/peo_13.pdb",
+                "../molecules/large/peo_14.pdb",
+                "../molecules/large/peo_15.pdb",
+                "../molecules/large/peo_16.pdb",
+                "../molecules/large/peo_17.pdb",
+                "../molecules/large/peo_18.pdb",
+                "../molecules/large/peo_19.pdb"
+            ]
+        }
+    },
+    "solvent": {
+        "../molecules/ace.pdb": 200,
+        "../molecules/ea.pdb": 200
+    },
+    "box": [60]
+}
