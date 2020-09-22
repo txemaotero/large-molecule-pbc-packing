@@ -21,7 +21,7 @@ class PBCPacking:
 
     def __init__(self, finput: str, out_dir: str = 'packing'):
         with open(finput) as _file:
-            self.inpunt_info = json.load(_file)
+            self.input_info = json.load(_file)
         self._unify_input_info() 
 
         self.out_dir = os.path.abspath(out_dir)
@@ -33,21 +33,21 @@ class PBCPacking:
         self._large_mol_list = sum([list(np.random.choice(value['paths'],
                                                           value['amount'],
                                                           replace=value['replace']))
-                                    for value in self.inpunt_info["large_molecules"].values()],
+                                    for value in self.input_info["large_molecules"].values()],
                                    [])
         self.n_large = len(self._large_mol_list)
-        self.box_str = '0. 0. 0. ' + ' '.join([f'{val:g}' for val in self.inpunt_info['box']])
-        self.box_side = np.array(self.inpunt_info['box'])
+        self.box_str = '0. 0. 0. ' + ' '.join([f'{val:g}' for val in self.input_info['box']])
+        self.box_side = np.array(self.input_info['box'])
 
     def _unify_input_info(self):
-        self.inpunt_info.setdefault('packmol_executable', 'packmol')
-        self.inpunt_info.setdefault('gromacs_executable', 'gmx')
-        self.inpunt_info.setdefault('large_molecules', {})
-        self.inpunt_info.setdefault('solvent', {})
-        if 'box' not in self.inpunt_info or not self.inpunt_info['box']:
+        self.input_info.setdefault('packmol_executable', 'packmol')
+        self.input_info.setdefault('gromacs_executable', 'gmx')
+        self.input_info.setdefault('large_molecules', {})
+        self.input_info.setdefault('solvent', {})
+        if 'box' not in self.input_info or not self.input_info['box']:
             raise IOError('You must specify simulation box shape.')
 
-        self.inpunt_info['box'] = box = self.inpunt_info['box']
+        self.input_info['box'] = box = self.input_info['box']
         if len(box) == 1:
             box *= 3
         if len(box) != 3:
@@ -102,7 +102,7 @@ class PBCPacking:
                       out_basename: str ='initial', move: bool = True):
         with open(f'{box_inp_basename}.inp') as box_inp, \
              open(f'{box_inp_basename}.log', 'w') as box_log:
-            subprocess.call([self.inpunt_info['packmol_executable']],
+            subprocess.call([self.input_info['packmol_executable']],
                             stdin=box_inp, stdout=box_log)
         if not os.path.exists(f'{box_out_basename}.pdb'):
             raise IOError(f'Packmol raises an error. Check the {box_inp_basename}.log file.')
@@ -133,7 +133,7 @@ class PBCPacking:
         system.write_gro(final)
 
     def _editconf(self, initial: str, final: str):
-        command = f'{self.inpunt_info["gromacs_executable"]} editconf -f {initial} -o {final}'.split()
+        command = f'{self.input_info["gromacs_executable"]} editconf -f {initial} -o {final}'.split()
         out = open(os.path.splitext(initial)[0]+'_editconf.log', 'w')
         try:
             subprocess.check_call(command, stdout=out, stderr=out)
@@ -198,7 +198,7 @@ structure ./final.pdb
 end structure
 
     """
-        for path, amount in self.inpunt_info['solvent'].items():
+        for path, amount in self.input_info['solvent'].items():
             text += f"""
 structure {path}
     number {amount}
