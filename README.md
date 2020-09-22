@@ -41,7 +41,7 @@ the structure of the [example](example_input.json) that can be
 found in this repository. In the next lines the meaning of each line in this
 example is commented:
 
-```json
+```js
 {
     // Specify the paths to the packmol and gromacs executables, this is, the
     // command that you use to run the programs
