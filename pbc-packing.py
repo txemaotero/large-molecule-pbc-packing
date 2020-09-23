@@ -51,9 +51,10 @@ class PBCPacking:
         self.box_side = np.array(self.input_info['box'])
 
     def _unify_input_info(self):
+        if 'large_molecules' not in self.input_info:
+            raise IOError('At least one large molecule should be specify.')
         self.input_info.setdefault('packmol_executable', 'packmol')
         self.input_info.setdefault('gromacs_executable', 'gmx')
-        self.input_info.setdefault('large_molecules', {})
         self.input_info.setdefault('solvent', {})
         if 'box' not in self.input_info or not self.input_info['box']:
             raise IOError('You must specify simulation box shape.')
@@ -91,15 +92,17 @@ class PBCPacking:
         """
         os.chdir(self.out_dir)
 
-        # Pack one poly
+        # Pack one large
         self.write_box_first_inp()
         self._pack_and_fix('box_first')
 
-        self.write_box_one_more_large_inp()
+        # Special case for only one large
+        if self._large_mol_list:
+            self.write_box_one_more_large_inp()
 
-        for _ in range(self.n_large - 1):
-            os.remove('final.pdb')
-            self._pack_and_fix('box_one_more')
+            for _ in range(self.n_large - 1):
+                os.remove('final.pdb')
+                self._pack_and_fix('box_one_more')
 
         os.rename('initial.gro', 'final.gro')
         os.rename('initial.pdb', 'final.pdb')

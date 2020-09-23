@@ -4,7 +4,7 @@
     "large_molecules": {
         "PEO": {
             "replace": false,
-            "amount": 20,
+            "amount": 1,
             "paths": [
                 "../molecules/large/peo_0.pdb",
                 "../molecules/large/peo_1.pdb",
@@ -26,13 +26,6 @@
                 "../molecules/large/peo_17.pdb",
                 "../molecules/large/peo_18.pdb",
                 "../molecules/large/peo_19.pdb"
-            ]
-        },
-        "PEO2": {
-            "replace": true,
-            "amount": 20,
-            "paths": [
-                "../molecules/large/peo_0.pdb"
             ]
         }
     },

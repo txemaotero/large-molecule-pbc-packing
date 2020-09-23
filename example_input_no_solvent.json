@@ -36,10 +36,5 @@
             ]
         }
     },
-    "solvent": {
-        "../molecules/ace.pdb": 400,
-        "../molecules/ea.pdb": 200,
-        "../molecules/li.pdb": 200
-    },
     "box": [60, 80, 50]
 }
