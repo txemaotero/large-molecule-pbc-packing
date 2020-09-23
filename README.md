@@ -116,7 +116,8 @@ The script simply initializes an instance of the `PBCPacking` class with the
 input parameters and then call its `run_packing` method. This class is also
 documented so if you have any doubt do not hesitate to check it out. 
 
-## Limitations
+
+## Limitations
 
 In the current version, this tool only allows to generate orthoedric simulation
 boxes. On the other hand, although a box without solvent molecules can be
