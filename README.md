@@ -23,7 +23,9 @@ packed inside that box if it is required.
 As it was mentioned, [Packmol](http://m3g.iqm.unicamp.br/packmol/home.shtml)
 and [Gromacs](http://www.gromacs.org) are required as well as
 [python](https://www.python.org) 3.6 or grater and the
-[numpy](https://numpy.org) python package. 
+[numpy](https://numpy.org) python package. One may ask why Gromacs is needed.
+The answer is that we use the `SystemGro` utility from `compyna` module to
+move the molecules and apply pbcs to move the atoms to the simulation box.
 
 ## How to use it
 
@@ -34,12 +36,12 @@ python pbc-packing.py input_info.json out_dir_name
 ```
 
 The first argument (`input_info.json`) is the path to the file with all the
-necessary information to perform the packing and the second one is a directory
-which will be created to store all the outputs. The last is optional and by
-default it will be set to `packing`. To write the `inpunt_info.json` file see
-the structure of the [example](example_input.json) that can be
-found in this repository. In the next lines the meaning of each line in this
-example is commented:
+necessary information to perform the packing and the second one is a
+directory which will be created to store all the outputs. The last is
+optional and by default it will be set to `packing`. To write the
+`inpunt_info.json` file see the structure of the
+[example](example_input.json) that can be found in this repository. In the
+next lines the meaning of each line in this example is commented:
 
 ```js
 {
@@ -103,9 +105,13 @@ example is commented:
     "solvent": {
         // For each solvent molecule specify the path to the pdb file with the
         // molecular configuration and the amount of them you want in to be in
-        // the box.
+        // the box. Again, we recomend to use absolute paths.
         "../molecules/ace.pdb": 200,
         "../molecules/ea.pdb": 200
     }
 }
 ```
+
+The script simply initializes an instance of the `PBCPacking` class with the
+input parameters and then call its `run_packing` method. This class is also
+documented so if you have any doubt do not hesitate to check it out. 

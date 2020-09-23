@@ -11,11 +11,22 @@ from compyna import SystemGro
 
 class PBCPacking:
     """
-    Class to manage simulations with large molecules like polymers.
+    Class to manage the packing of large molecules for MD simulations. 
 
     Due to the large size of the molecules, this class makes some tricks in
-    the packing process to simulate a packing with pbcs (see run_box method
-    documentation). 
+    the packing process to simulate a packing with periodic boundary conditions
+    (pbcs). See run_packing method documentation. To perform the packing just
+    initialize an instance of the class and then call the `run_packing` method. 
+
+    Parameters
+    ----------
+    finput : str
+        The path to the file with all the information needed to perform the
+        packing. See the README for a detailed explanation of this file
+        content.
+    out_dir : str, Optional
+        The path to the directory that will be created to store the outputs. By
+        default the class will create a "packing" directory in the current one.
 
     """
 
@@ -55,20 +66,28 @@ class PBCPacking:
 
     def run_packing(self, remove_tmp: bool = True):
         """
-        Generates the inital configuration using Packmol in a box subdir.
+        Generates the random configuration in the out_dir.
 
-        Packmol is used to put one of the provided polymer configuration in
-        an empyt box. Then the molecule in this box is displaced a random
-        vector and pbcs are applied to place every atom in the simulation
-        box. This new box is used as input in a new packmol and a new polymer
-        is boxed in the free space of the box. The same displacemnt is
-        applied now and the process is repeated untill all the polymer
-        molecules are in the box. Finally, the solvent molecules are packed
-        in the box with all the polimers.
+        Packmol is used to put one of the provided large molecules
+        configuration in an empty box. Then the molecule in this box is
+        displaced a random vector and pbcs are applied to place every atom in
+        the simulation box. This new box is used as input in a new packmol
+        call and a new large molecule is boxed in the free space of the box.
+        A new random displacement is applied now and the process is repeated
+        until all the polymer molecules are in the box. Finally, the solvent
+        molecules are packed in the box with all the large molecules. The
+        final configuration can be found in the "boxed.gro" or "boxed.pdb"
+        files.
 
-        The final configuration is in the "boxed.gro" file.
+        NOTE: Make sure you have gromacs and packmol installed in your
+        system.
 
-        NOTE: packmol comand should be available in the system.
+        Parameters
+        ----------
+        remove_tmp : bool, Optional
+            If True (default) the files from the intermediate steps will be
+            removed at the end.
+
         """
         os.chdir(self.out_dir)
 
@@ -112,15 +131,21 @@ class PBCPacking:
 
     def move_and_add_box(self, initial: str, final: str, move: bool = True):
         """
-        Displaces the simulation box a random vector, applies pbc and writes
-        box dimensions.
+        Moves molecules a random vector, applies pbcs and writes box dimensions.
 
         Parameters
         ----------
-        initial: str
+        initial : str
             Path with the gro to modify.
-        final: str
+        final : str
             Path with to write the modified gro.
+        move : bool, optional
+            If True all the molecules in the system will be displaced a random
+            vector and then pbcs will be applied to bring back the atoms to the
+            box. Each of the random vector components is selected with a
+            homogeneous distribution from 0 to the corresponding box side.
+            Setting to False this parameter is useful to write the box
+            dimensions in the initial file.
 
         """
         system = SystemGro(initial)
@@ -185,7 +210,7 @@ end structure
 
     def write_box_solvent_inp(self):
         """
-        Writes the Packmol input to pack ths solvent in the existing box.
+        Writes the Packmol input to pack the solvent in the existing box.
         """
         text = f"""
 tolerance 1.2
@@ -220,6 +245,5 @@ if __name__ == '__main__':
     except IndexError:
         out_dir ='packing'
 
-    shutil.rmtree(out_dir)
     packing = PBCPacking(info_file, out_dir=out_dir)
     packing.run_packing()
