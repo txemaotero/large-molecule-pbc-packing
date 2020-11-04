@@ -6,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 
-from compyna import SystemGro
+from MDAnalysis import Universe
 
 
 class PBCPacking:
@@ -151,14 +151,12 @@ class PBCPacking:
             dimensions in the initial file.
 
         """
-        system = SystemGro(initial)
-        l_box_nm = self.box_side * 0.1
-        np.fill_diagonal(system.box_vectors, l_box_nm)
+        universe = Universe(initial)
+        universe.dimensions = [*self.box_side, 90, 90, 90]
         if move:
-            disp = l_box_nm * np.random.random(3)
-            system.move_molecules(disp)
-            system.inside_box()
-        system.write_gro(final)
+            universe.atoms.positions += self.box_side * np.random.random(3)
+            universe.atoms.pack_into_box()
+        universe.atoms.write(final)
 
     def _editconf(self, initial: str, final: str):
         command = f'{self.input_info["gromacs_executable"]} editconf -f {initial} -o {final}'.split()
