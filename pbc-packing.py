@@ -1,6 +1,7 @@
 import os
 import json
 import subprocess
+import warnings
 from sys import path
 from pathlib import Path
 
@@ -88,6 +89,8 @@ class PBCPacking:
 
         """
         os.chdir(self.out_dir)
+        # Ignore MDAnalysis warnings
+        warnings.filterwarnings('ignore')
 
         # Pack one large
         print(f'Packing large molecules (1/{self.n_large})', end='\r')
@@ -117,6 +120,7 @@ class PBCPacking:
             for _file in Path('.').glob('*.log'):
                 _file.unlink()
             os.remove('final.pdb')
+        warnings.filterwarnings('default')
         os.chdir('..')
 
     def _pack_and_fix(self, box_inp_basename: str,
