@@ -50,6 +50,7 @@ class PBCPacking:
         self.n_large = len(self._large_mol_list)
         self.box_str = '0. 0. 0. ' + ' '.join([f'{val:g}' for val in self.input_info['box']])
         self.box_side = np.array(self.input_info['box'])
+        self._inp_file = None    # This will be used to save the packmol input
 
     def _unify_input_info(self):
         if 'large_molecules' not in self.input_info:
@@ -94,6 +95,7 @@ class PBCPacking:
 
         # Pack one large
         print(f'Packing large molecules (1/{self.n_large})', end='\r')
+        self._inp_file = open('box.inp', 'w+')
         self.write_box_first_inp()
         self._pack_and_fix('box_first')
 
@@ -119,18 +121,22 @@ class PBCPacking:
             for _file in Path('.').glob('*.log'):
                 _file.unlink()
             os.remove('final.pdb')
+        self._inp_file.close()
+        os.remove('box.inp')
         warnings.filterwarnings('default')
         os.chdir('..')
 
     def _pack_and_fix(self, box_inp_basename: str,
                       box_out_basename: str = 'final',
                       out_basename: str ='initial', move: bool = True):
-        with open(f'{box_inp_basename}.inp') as box_inp, \
-             open(f'{box_inp_basename}.log', 'w') as box_log:
+        with open(f'{box_inp_basename}.log', 'w') as box_log:
+            self._inp_file.seek(0)
             subprocess.call([self.input_info['packmol_executable']],
-                            stdin=box_inp, stdout=box_log)
+                            stdin=self._inp_file, stdout=box_log)
         if not os.path.exists(f'{box_out_basename}.pdb'):
             raise IOError(f'Packmol raises an error. Check the {box_inp_basename}.log file.')
+        self._inp_file.seek(0)
+        self._inp_file.truncate()
         self.move_and_add_box(f'{box_out_basename}.pdb', f'{out_basename}.pdb', move)
 
     def move_and_add_box(self, initial: str, final: str, move: bool = True):
@@ -175,8 +181,7 @@ structure {large_mol}
     inside box  {self.box_str}
 end structure
         """
-        with open('box_first.inp', 'w') as _file:
-            _file.write(text)
+        self._inp_file.write(text)
 
     def write_box_one_more_large_inp(self):
         """
@@ -203,8 +208,7 @@ structure {large_conf}
     inside box  {self.box_str}
 end structure
         """
-        with open('box_one_more.inp', 'w') as _file:
-            _file.write(text)
+        self._inp_file.write(text)
 
     def write_box_solvent_inp(self):
         """
@@ -231,8 +235,7 @@ structure {path}
 end structure
 
 """
-        with open('box.inp', 'w') as _file:
-            _file.write(text)
+        self._inp_file.write(text)
 
 
 if __name__ == '__main__':
