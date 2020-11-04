@@ -99,11 +99,10 @@ class PBCPacking:
 
         # Special case for only one large
         if self._large_mol_list:
-            self.write_box_one_more_large_inp()
-
             for i in range(self.n_large - 1):
                 print(f'\rPacking large molecules ({i+1}/{self.n_large})', end='\r')
                 os.remove('final.pdb')
+                self.write_box_one_more_large_inp()
                 self._pack_and_fix('box_one_more')
 
         print(f'\rPacking large molecules ({self.n_large}/{self.n_large})', end='\r')
@@ -198,6 +197,9 @@ end structure
 structure {large_conf}
     number 1
     resnumbers 2
+    constrain_rotation x {np.random.randint(180)}. 20.
+    constrain_rotation y {np.random.randint(180)}. 20.
+    constrain_rotation z {np.random.randint(180)}. 20.
     inside box  {self.box_str}
 end structure
         """

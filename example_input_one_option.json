@@ -1,0 +1,18 @@
+{
+    "packmol_executable": "packmol",
+    "large_molecules": {
+        "PEO": {
+            "replace": true,
+            "amount": 20,
+            "paths": [
+                "../molecules/large/peo_0.pdb"
+            ]
+        }
+    },
+    "solvent": {
+        "../molecules/ace.pdb": 400,
+        "../molecules/ea.pdb": 200,
+        "../molecules/li.pdb": 200
+    },
+    "box": [60, 80, 50]
+}
