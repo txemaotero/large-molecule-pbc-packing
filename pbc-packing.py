@@ -93,6 +93,7 @@ class PBCPacking:
         os.chdir(self.out_dir)
 
         # Pack one large
+        print(f'Packing large molecules (1/{self.n_large})', end='\r')
         self.write_box_first_inp()
         self._pack_and_fix('box_first')
 
@@ -100,17 +101,21 @@ class PBCPacking:
         if self._large_mol_list:
             self.write_box_one_more_large_inp()
 
-            for _ in range(self.n_large - 1):
+            for i in range(self.n_large - 1):
+                print(f'\rPacking large molecules ({i+1}/{self.n_large})', end='\r')
                 os.remove('final.pdb')
                 self._pack_and_fix('box_one_more')
 
+        print(f'\rPacking large molecules ({self.n_large}/{self.n_large})', end='\r')
         os.rename('initial.gro', 'final.gro')
         os.rename('initial.pdb', 'final.pdb')
 
+        print('\nPacking the solvent molecules')
         self.write_box_solvent_inp()
         self._pack_and_fix('box', box_out_basename='boxed', out_basename='boxed',
                            move=False)
         if remove_tmp:
+            print('Removing temporary files')
             for _file in Path('.').glob('#*#'):
                 _file.unlink()
             for _file in Path('.').glob('*.log'):
