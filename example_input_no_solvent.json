@@ -1,6 +1,5 @@
 {
     "packmol_executable": "packmol",
-    "gromacs_executable": "gmx",
     "large_molecules": {
         "PEO": {
             "replace": false,

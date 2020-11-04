@@ -54,7 +54,6 @@ class PBCPacking:
         if 'large_molecules' not in self.input_info:
             raise IOError('At least one large molecule should be specify.')
         self.input_info.setdefault('packmol_executable', 'packmol')
-        self.input_info.setdefault('gromacs_executable', 'gmx')
         self.input_info.setdefault('solvent', {})
         if 'box' not in self.input_info or not self.input_info['box']:
             raise IOError('You must specify simulation box shape.')
@@ -77,11 +76,9 @@ class PBCPacking:
         A new random displacement is applied now and the process is repeated
         until all the polymer molecules are in the box. Finally, the solvent
         molecules are packed in the box with all the large molecules. The
-        final configuration can be found in the "boxed.gro" or "boxed.pdb"
-        files.
+        final configuration can be found in the "boxed.pdb" file.
 
-        NOTE: Make sure you have gromacs and packmol installed in your
-        system.
+        NOTE: Make sure you have packmol installed in your system.
 
         Parameters
         ----------
@@ -107,7 +104,6 @@ class PBCPacking:
                 self._pack_and_fix('box_one_more')
 
         print(f'\rPacking large molecules ({self.n_large}/{self.n_large})', end='\r')
-        os.rename('initial.gro', 'final.gro')
         os.rename('initial.pdb', 'final.pdb')
 
         print('\nPacking the solvent molecules')
@@ -120,7 +116,6 @@ class PBCPacking:
                 _file.unlink()
             for _file in Path('.').glob('*.log'):
                 _file.unlink()
-            os.remove('final.gro')
             os.remove('final.pdb')
         os.chdir('..')
 
@@ -133,9 +128,7 @@ class PBCPacking:
                             stdin=box_inp, stdout=box_log)
         if not os.path.exists(f'{box_out_basename}.pdb'):
             raise IOError(f'Packmol raises an error. Check the {box_inp_basename}.log file.')
-        self._editconf(f'{box_out_basename}.pdb', f'{box_out_basename}.gro')
-        self.move_and_add_box(f'{box_out_basename}.gro', f'{out_basename}.gro', move)
-        self._editconf(f'{out_basename}.gro', f'{out_basename}.pdb')
+        self.move_and_add_box(f'{box_out_basename}.pdb', f'{out_basename}.pdb', move)
 
     def move_and_add_box(self, initial: str, final: str, move: bool = True):
         """
@@ -144,9 +137,9 @@ class PBCPacking:
         Parameters
         ----------
         initial : str
-            Path with the gro to modify.
+            Path with the pdb to modify.
         final : str
-            Path with to write the modified gro.
+            Path where the modified pdb will be written.
         move : bool, optional
             If True all the molecules in the system will be displaced a random
             vector and then pbcs will be applied to bring back the atoms to the
@@ -162,16 +155,6 @@ class PBCPacking:
             universe.atoms.positions += self.box_side * np.random.random(3)
             universe.atoms.pack_into_box()
         universe.atoms.write(final)
-
-    def _editconf(self, initial: str, final: str):
-        command = f'{self.input_info["gromacs_executable"]} editconf -f {initial} -o {final}'.split()
-        out = open(os.path.splitext(initial)[0]+'_editconf.log', 'w')
-        try:
-            subprocess.check_call(command, stdout=out, stderr=out)
-        except subprocess.CalledProcessError:
-            raise IOError('Error in gromacs editconf')
-        finally:
-            out.close()
 
     def write_box_first_inp(self):
         """

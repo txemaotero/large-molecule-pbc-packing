@@ -4,9 +4,7 @@ This repository provides a python script to generate random molecular
 configurations taking into account periodic boundary conditions for large
 molecules. [Packmol](http://m3g.iqm.unicamp.br/packmol/home.shtml) software is
 required for running this tool so make sure you have it installed and cite it
-if you use this script. [Gromacs](http://www.gromacs.org) editconf utility is
-also required. If you do not have Gromacs installed a basic installation should
-be enough (un linux-based systems run `apt install gromacs`).
+if you use this script. 
 
 ## How it works?
 
@@ -20,12 +18,9 @@ packed inside that box if it is required.
 
 ## Dependencies
 
-As it was mentioned, [Packmol](http://m3g.iqm.unicamp.br/packmol/home.shtml)
-and [Gromacs](http://www.gromacs.org) are required as well as
-[python](https://www.python.org) 3.6 or grater and the
-[numpy](https://numpy.org) python package. One may ask why Gromacs is needed.
-The answer is that we use the `SystemGro` utility from `compyna` module to
-move the molecules and apply pbcs to move the atoms to the simulation box.
+As it was mentioned, [Packmol](http://m3g.iqm.unicamp.br/packmol/home.shtml) is
+required as well as [python](https://www.python.org) 3.6 or grater and also the
+[numpy](https://numpy.org) python package. 
 
 ## How to use it
 
@@ -45,10 +40,9 @@ next lines the meaning of each line in this example is commented:
 
 ```js
 {
-    // Specify the paths to the packmol and gromacs executables, this is, the
-    // command that you use to run the programs
+    // Specify the paths to the packmol executable, this is, the
+    // command that you use to run packmol
     "packmol_executable": "packmol",
-    "gromacs_executable": "gmx",
     // "box" is a list of floats corresponding to the dimension of the box in
     // the x, y and z directions. If the list has just one value a cubic box
     // will be created.
