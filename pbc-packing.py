@@ -180,6 +180,7 @@ output final.pdb
 
 structure {large_mol}
     number 1
+    resnumbers 2
     inside box  {self.box_str}
 end structure
         """
@@ -198,11 +199,13 @@ output final.pdb
 
 structure ./initial.pdb
     number 1
+    resnumbers 2
     fixed   0.     0.     0.    0.    0.    0.
 end structure
 
 structure {large_conf}
     number 1
+    resnumbers 2
     inside box  {self.box_str}
 end structure
         """
@@ -220,6 +223,7 @@ output boxed.pdb
 
 structure ./final.pdb
     number 1
+    resnumbers 2
     fixed   0.     0.     0.    0.    0.    0.
 end structure
 
@@ -228,6 +232,7 @@ end structure
             text += f"""
 structure {path}
     number {amount}
+    resnumbers 2
     inside box  {self.box_str}
 end structure
 
