@@ -66,12 +66,9 @@ class PBCPacking:
         if len(box) != 3:
             raise ValueError('"box" keyword must have 1 or 3 elements.')
 
-        if 'pbc' not in self.input_info:
-            self.pbc = 'xyz'
-        else:
-            if self.input_info['pbc'] != 'xyz' and self.input_info['pbc'] != 'xy':
-                raise IOError('Invalid pbc sepecified, use xy or xyz')
-            self.pbc = self.input_info['pbc']
+        self.input_info['pbc'].setdefault('pbc', 'xyz')
+        if self.input_info['pbc'] not in ['xyz', 'xy']:
+            raise IOError('Invalid pbc sepecified, use xy or xyz')
 
     def run_packing(self, remove_tmp: bool = True):
         """
@@ -104,7 +101,7 @@ class PBCPacking:
         print(f'Packing large molecules (1/{self.n_large})', end='\r')
         self._inp_file = open('box.inp', 'w+')
         self.write_box_first_inp()
-        self._pack_and_fix('box_first', pbc=self.pbc)
+        self._pack_and_fix('box_first', pbc=self.input_info['pbc'])
 
         # Special case for only one large
         if self._large_mol_list:
@@ -112,7 +109,7 @@ class PBCPacking:
                 print(f'\rPacking large molecules ({i+1}/{self.n_large})', end='\r')
                 os.remove('final.pdb')
                 self.write_box_one_more_large_inp()
-                self._pack_and_fix('box_one_more', pbc=self.pbc)
+                self._pack_and_fix('box_one_more', pbc=self.input_info['pbc'])
 
         print(f'\rPacking large molecules ({self.n_large}/{self.n_large})', end='\r')
         os.rename('initial.pdb', 'final.pdb')
@@ -135,7 +132,8 @@ class PBCPacking:
 
     def _pack_and_fix(self, box_inp_basename: str,
                       box_out_basename: str = 'final',
-                      out_basename: str ='initial', move: bool = True, pbc: str = 'xyz'):
+                      out_basename: str ='initial', move: bool = True,
+                      pbc: str = 'xyz'):
         with open(f'{box_inp_basename}.log', 'w') as box_log:
             self._inp_file.seek(0)
             subprocess.call([self.input_info['packmol_executable']],
@@ -146,7 +144,8 @@ class PBCPacking:
         self._inp_file.truncate()
         self.move_and_add_box(f'{box_out_basename}.pdb', f'{out_basename}.pdb', move, pbc)
 
-    def move_and_add_box(self, initial: str, final: str, move: bool = True, pbc: str = 'xyz'):
+    def move_and_add_box(self, initial: str, final: str, move: bool = True,
+                         pbc: str = 'xyz'):
         """
         Moves molecules a random vector, applies pbcs and writes box dimensions.
 
@@ -178,10 +177,8 @@ class PBCPacking:
                 universe.atoms.pack_into_box()
                 
                 universe.atoms.positions = self.rotate_box(universe.atoms.positions, np.array([1, 0, 0]), np.pi)
-                
 
         universe.atoms.write(final)
-
 
     def rotate_box(self, positions: np.ndarray, axis: np.ndarray, angle: float) -> np.ndarray:
         """
@@ -295,7 +292,6 @@ def get_rotation_matrix(vector: np.ndarray, angle: float) -> np.ndarray:
         [y*x*(1-cos)+z*sin, cos+y**2*(1-cos), y*z*(1-cos)-x*sin],
         [z*x*(1-cos)-y*sin, z*y*(1-cos)+x*sin, cos+z**2*(1-cos)]]
         )
-
 
 
 if __name__ == '__main__':
