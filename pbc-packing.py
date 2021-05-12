@@ -54,7 +54,7 @@ class PBCPacking:
 
     def _unify_input_info(self):
         if 'large_molecules' not in self.input_info:
-            raise IOError('At least one large molecule should be specify.')
+            raise IOError('At least one large molecule should be specified.')
         self.input_info.setdefault('packmol_executable', 'packmol')
         self.input_info.setdefault('solvent', {})
         if 'box' not in self.input_info or not self.input_info['box']:
@@ -65,6 +65,13 @@ class PBCPacking:
             box *= 3
         if len(box) != 3:
             raise ValueError('"box" keyword must have 1 or 3 elements.')
+
+        if 'pbc' not in self.input_info:
+            self.pbc = 'xyz'
+        else:
+            if self.input_info['pbc'] != 'xyz' and self.input_info['pbc'] != 'xy':
+                raise IOError('Invalid pbc sepecified, use xy or xyz')
+            self.pbc = self.input_info['pbc']
 
     def run_packing(self, remove_tmp: bool = True):
         """
@@ -97,7 +104,7 @@ class PBCPacking:
         print(f'Packing large molecules (1/{self.n_large})', end='\r')
         self._inp_file = open('box.inp', 'w+')
         self.write_box_first_inp()
-        self._pack_and_fix('box_first')
+        self._pack_and_fix('box_first', pbc=self.pbc)
 
         # Special case for only one large
         if self._large_mol_list:
@@ -105,7 +112,7 @@ class PBCPacking:
                 print(f'\rPacking large molecules ({i+1}/{self.n_large})', end='\r')
                 os.remove('final.pdb')
                 self.write_box_one_more_large_inp()
-                self._pack_and_fix('box_one_more')
+                self._pack_and_fix('box_one_more', pbc=self.pbc)
 
         print(f'\rPacking large molecules ({self.n_large}/{self.n_large})', end='\r')
         os.rename('initial.pdb', 'final.pdb')
@@ -128,7 +135,7 @@ class PBCPacking:
 
     def _pack_and_fix(self, box_inp_basename: str,
                       box_out_basename: str = 'final',
-                      out_basename: str ='initial', move: bool = True):
+                      out_basename: str ='initial', move: bool = True, pbc: str = 'xyz'):
         with open(f'{box_inp_basename}.log', 'w') as box_log:
             self._inp_file.seek(0)
             subprocess.call([self.input_info['packmol_executable']],
@@ -137,9 +144,9 @@ class PBCPacking:
             raise IOError(f'Packmol raises an error. Check the {box_inp_basename}.log file.')
         self._inp_file.seek(0)
         self._inp_file.truncate()
-        self.move_and_add_box(f'{box_out_basename}.pdb', f'{out_basename}.pdb', move)
+        self.move_and_add_box(f'{box_out_basename}.pdb', f'{out_basename}.pdb', move, pbc)
 
-    def move_and_add_box(self, initial: str, final: str, move: bool = True):
+    def move_and_add_box(self, initial: str, final: str, move: bool = True, pbc: str = 'xyz'):
         """
         Moves molecules a random vector, applies pbcs and writes box dimensions.
 
@@ -160,10 +167,47 @@ class PBCPacking:
         """
         universe = Universe(initial)
         universe.dimensions = [*self.box_side, 90, 90, 90]
+
         if move:
-            universe.atoms.positions += self.box_side * np.random.random(3)
-            universe.atoms.pack_into_box()
+            if pbc == 'xyz':
+                universe.atoms.positions += self.box_side * np.random.random(3)
+                universe.atoms.pack_into_box()
+            
+            elif pbc == 'xy':
+                universe.atoms.positions += np.array([*self.box_side[:2], 0]) * np.random.random(3)
+                universe.atoms.pack_into_box()
+                
+                universe.atoms.positions = self.rotate_box(universe.atoms.positions, np.array([1, 0, 0]), np.pi)
+                
+
         universe.atoms.write(final)
+
+
+    def rotate_box(self, positions: np.ndarray, axis: np.ndarray, angle: float) -> np.ndarray:
+        """
+        Applies a rotation to a given MDAnalysis Universe
+
+        Parameters
+        ----------
+        positions :  np.ndarray
+            Array containing the positions of all atoms in the box.
+        axis : np.ndarray
+            Axis around which the rotation will be performed.
+        angle : np.ndarray
+            Angle of rotation.
+
+        Returns
+        -------
+        np.ndarray
+            The rotated positions.
+        """
+        positions -= np.array([*self.box_side]) * np.array([1/2., 1/2., 1/2.])
+        
+        rot = get_rotation_matrix(axis, angle)
+        positions = rot.dot(positions.T).T
+
+        positions += np.array([*self.box_side]) * np.array([1/2., 1/2., 1/2.])
+        return positions
 
     def write_box_first_inp(self):
         """
@@ -236,6 +280,22 @@ end structure
 
 """
         self._inp_file.write(text)
+
+
+def get_rotation_matrix(vector: np.ndarray, angle: float) -> np.ndarray:
+    """
+    Returns the rotation matrix of a turn around a general axis
+    """
+    x, y, z = vector/np.sqrt(sum(vector**2))
+    cos = np.cos(angle)
+    sin = np.sin(angle)
+
+    return np.array(
+        [[cos + x**2 * (1-cos), x*y*(1-cos) - z*sin, x*z*(1-cos)+y*sin],
+        [y*x*(1-cos)+z*sin, cos+y**2*(1-cos), y*z*(1-cos)-x*sin],
+        [z*x*(1-cos)-y*sin, z*y*(1-cos)+x*sin, cos+z**2*(1-cos)]]
+        )
+
 
 
 if __name__ == '__main__':
