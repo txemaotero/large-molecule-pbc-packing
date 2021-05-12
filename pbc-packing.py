@@ -66,7 +66,7 @@ class PBCPacking:
         if len(box) != 3:
             raise ValueError('"box" keyword must have 1 or 3 elements.')
 
-        self.input_info['pbc'].setdefault('pbc', 'xyz')
+        self.input_info.setdefault('pbc', 'xyz')
         if self.input_info['pbc'] not in ['xyz', 'xy']:
             raise IOError('Invalid pbc sepecified, use xy or xyz')
 
