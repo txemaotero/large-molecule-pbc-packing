@@ -93,14 +93,17 @@ nloop0 10000
                 continue
             if os.path.exists('./initial.pdb'):
                 hist, edges = np.histogram(Universe('./initial.pdb').atoms.positions[:, axis], 
-                                           bins=50, range=(0, self.box_side[axis]))
+                                           bins=50, range=(inside[axis], inside[axis+3]))
                 edges_mid = (edges[1:] + edges[:-1]) / 2
                 hist = hist.max() - hist
                 hist = hist / hist.sum()
-                random_left = max(0, np.random.choice(edges_mid, p=hist) - self._long_mol_max_side/2)
-                random_left = min(random_left, self.box_side[axis]-self._long_mol_max_side)
+                random_left = max(inside[axis],
+                                  np.random.choice(edges_mid, p=hist) - self._long_mol_max_side/2)
+                random_left = min(random_left,
+                                  inside[axis+3]-self._long_mol_max_side)
             else:
-                random_left = np.random.random() * (self.box_side[axis] - self._long_mol_max_side) 
+                random_left = np.random.random() * (inside[axis+3] - inside[axis])
+                random_left += inside[axis]
             inside[axis] = random_left
             inside[axis+3] = random_left + self._long_mol_max_side
         return ' '.join([f'{val:g}' for val in inside])
