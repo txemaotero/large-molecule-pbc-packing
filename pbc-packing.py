@@ -11,6 +11,14 @@ import numpy as np
 from MDAnalysis import Universe
 
 
+def find_max_side_box_inside(path):
+    """
+    Finds the maximum side of the box that contains the molecule in path.
+    """
+    positions = Universe(path).atoms.positions
+    return max(positions.max(0) - positions.min(0))
+
+
 class PBCPacking:
     """
     Class to manage the packing of large molecules for MD simulations. 
@@ -30,6 +38,13 @@ class PBCPacking:
         The path to the directory that will be created to store the outputs. By
         default the class will create a "packing" directory in the current one.
 
+    """
+    INP_HEADER = """
+tolerance 1.2
+avoid_overlap yes
+randominitialpoint
+filetype pdb
+nloop0 10000
     """
 
     def __init__(self, finput: str, out_dir: str = 'packing'):
@@ -52,6 +67,8 @@ class PBCPacking:
         self.box_side = np.array(self.input_info['box'])
         self.solvent_box_offsets = np.zeros(6)
         self.long_mol_box_offsets = np.zeros(6)
+        self._long_mol_max_side = np.max([find_max_side_box_inside(os.path.join(self.out_dir, path))
+                                           for path in self._large_mol_list])
         self._inp_file = None    # This will be used to save the packmol input
         self._init_offsets()
 
@@ -66,6 +83,20 @@ class PBCPacking:
         box = self.long_mol_box_offsets.copy()
         box[3:] += self.box_side
         return ' '.join([f'{val:g}' for val in box])
+
+    @property
+    def random_long_mol_subbox(self):
+        # TODO: Implement that the random is calculated taking into account the
+        # empty region in the box.
+        inside = self.long_mol_box_offsets.copy()
+        inside[3:] += self.box_side
+        for axis, pbc in enumerate(self.input_info['pbc']):
+            if pbc:
+                continue
+            random_left = np.random.random() * (self.box_side[axis] - self._long_mol_max_side) 
+            inside[axis] = random_left
+            inside[axis+3] = random_left + self._long_mol_max_side
+        return ' '.join([f'{val:g}' for val in inside])
 
     def _init_offsets(self):
         # 1 angstroms on the box sides that are replicated to avoid overlap when
@@ -239,11 +270,7 @@ class PBCPacking:
         Writes the Packmol input to pack the first large molecule.
         """
         large_mol = self._large_mol_list.pop(0)
-        text = f"""
-tolerance 2
-avoid_overlap yes
-randominitialpoint
-filetype pdb
+        text = self.INP_HEADER + f"""
 output final.pdb
 
 structure {large_mol}
@@ -259,11 +286,7 @@ end structure
         Writes the Packmol input to pack a large molecule in an existing box.
         """
         large_conf = self._large_mol_list.pop(0)
-        text = f"""
-tolerance 2
-avoid_overlap yes
-randominitialpoint
-filetype pdb
+        text = self.INP_HEADER + f"""
 output final.pdb
 
 structure ./initial.pdb
@@ -275,10 +298,10 @@ end structure
 structure {large_conf}
     number 1
     resnumbers 2
-    constrain_rotation x {np.random.randint(180)}. 20.
-    constrain_rotation y {np.random.randint(180)}. 20.
-    constrain_rotation z {np.random.randint(180)}. 20.
-    inside box  {self.long_mol_box_str}
+    constrain_rotation x {np.random.randint(180)}. 90.
+    constrain_rotation y {np.random.randint(180)}. 90.
+    constrain_rotation z {np.random.randint(180)}. 90.
+    inside box  {self.random_long_mol_subbox}
 end structure
         """
         self._inp_file.write(text)
@@ -287,11 +310,7 @@ end structure
         """
         Writes the Packmol input to pack the solvent in the existing box.
         """
-        text = f"""
-tolerance 2
-avoid_overlap yes
-randominitialpoint
-filetype pdb
+        text = self.INP_HEADER + f"""
 output boxed.pdb
 
 structure ./final.pdb

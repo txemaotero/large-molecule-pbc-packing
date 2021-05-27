@@ -4,7 +4,7 @@
     "large_molecules": {
         "PEO": {
             "replace": true,
-            "amount": 20,
+            "amount": 44,
             "paths": [
                 "../molecules/large/peo_0.pdb",
                 "../molecules/large/peo_1.pdb",
@@ -30,9 +30,9 @@
         }
     },
     "solvent": {
-        "../molecules/ace.pdb": 100,
-        "../molecules/ea.pdb": 50,
-        "../molecules/li.pdb": 50
+        "../molecules/ace.pdb": 352,
+        "../molecules/ea.pdb": 264,
+        "../molecules/li.pdb": 88
     },
-    "box": [55, 53, 100]
+    "box": [47, 47, 103]
 }
