@@ -86,14 +86,21 @@ nloop0 10000
 
     @property
     def random_long_mol_subbox(self):
-        # TODO: Implement that the random is calculated taking into account the
-        # empty region in the box.
         inside = self.long_mol_box_offsets.copy()
         inside[3:] += self.box_side
         for axis, pbc in enumerate(self.input_info['pbc']):
             if pbc:
                 continue
-            random_left = np.random.random() * (self.box_side[axis] - self._long_mol_max_side) 
+            if os.path.exists('./initial.pdb'):
+                hist, edges = np.histogram(Universe('./initial.pdb').atoms.positions[:, axis], 
+                                           bins=50, range=(0, self.box_side[axis]))
+                edges_mid = (edges[1:] + edges[:-1]) / 2
+                hist = hist.max() - hist
+                hist = hist / hist.sum()
+                random_left = max(0, np.random.choice(edges_mid, p=hist) - self._long_mol_max_side/2)
+                random_left = min(random_left, self.box_side[axis]-self._long_mol_max_side)
+            else:
+                random_left = np.random.random() * (self.box_side[axis] - self._long_mol_max_side) 
             inside[axis] = random_left
             inside[axis+3] = random_left + self._long_mol_max_side
         return ' '.join([f'{val:g}' for val in inside])
