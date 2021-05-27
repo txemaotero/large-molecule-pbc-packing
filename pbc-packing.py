@@ -4,6 +4,7 @@ import subprocess
 import warnings
 from sys import path
 from pathlib import Path
+from typing import Tuple
 
 import numpy as np
 
@@ -48,9 +49,38 @@ class PBCPacking:
                                     for value in self.input_info["large_molecules"].values()],
                                    [])
         self.n_large = len(self._large_mol_list)
-        self.box_str = '0. 0. 0. ' + ' '.join([f'{val:g}' for val in self.input_info['box']])
         self.box_side = np.array(self.input_info['box'])
+        self.solvent_box_offsets = np.zeros(6)
+        self.long_mol_box_offsets = np.zeros(6)
         self._inp_file = None    # This will be used to save the packmol input
+        self._init_offsets()
+
+    @property
+    def solvent_box_str(self):
+        box = self.solvent_box_offsets.copy()
+        box[3:] += self.box_side
+        return ' '.join([f'{val:g}' for val in box])
+
+    @property
+    def long_mol_box_str(self):
+        box = self.long_mol_box_offsets.copy()
+        box[3:] += self.box_side
+        return ' '.join([f'{val:g}' for val in box])
+
+    def _init_offsets(self):
+        # 1 angstroms on the box sides that are replicated to avoid overlap when
+        # pbc applied only for solvent.
+        pbcs = np.array(self.input_info['pbc'])
+        self.solvent_box_offsets[:3] += pbcs
+        self.solvent_box_offsets[3:] -= pbcs
+        # 2 angstroms on the box sides that are not replicated to avoid overlap
+        # whith interfaces or walls.
+        not_pbcs = 2*np.float_(np.logical_not(pbcs))
+        self.solvent_box_offsets[:3] += not_pbcs
+        self.solvent_box_offsets[3:] -= not_pbcs
+
+        self.long_mol_box_offsets[:3] = not_pbcs
+        self.long_mol_box_offsets[3:] = -not_pbcs
 
     def _unify_input_info(self):
         if 'large_molecules' not in self.input_info:
@@ -66,9 +96,10 @@ class PBCPacking:
         if len(box) != 3:
             raise ValueError('"box" keyword must have 1 or 3 elements.')
 
-        self.input_info.setdefault('pbc', 'xyz')
-        if self.input_info['pbc'] not in ['xyz', 'xy']:
-            raise IOError('Invalid pbc sepecified, use xy or xyz')
+        self.input_info.setdefault('pbc', [1, 1, 1])
+        if not isinstance(self.input_info['pbc'], list) or not all(i in [0, 1] for i in self.input_info['pbc']):
+            raise IOError('Invalid pbc sepecified, use a 3 element list with 1 or 0.')
+        self.input_info['pbc'] = tuple(self.input_info['pbc'])
 
     def run_packing(self, remove_tmp: bool = True):
         """
@@ -132,8 +163,8 @@ class PBCPacking:
 
     def _pack_and_fix(self, box_inp_basename: str,
                       box_out_basename: str = 'final',
-                      out_basename: str ='initial', move: bool = True,
-                      pbc: str = 'xyz'):
+                      out_basename: str = 'initial', move: bool = True,
+                      pbc: Tuple =(1, 1, 1)):
         with open(f'{box_inp_basename}.log', 'w') as box_log:
             self._inp_file.seek(0)
             subprocess.call([self.input_info['packmol_executable']],
@@ -145,7 +176,7 @@ class PBCPacking:
         self.move_and_add_box(f'{box_out_basename}.pdb', f'{out_basename}.pdb', move, pbc)
 
     def move_and_add_box(self, initial: str, final: str, move: bool = True,
-                         pbc: str = 'xyz'):
+                         pbc: Tuple = (1, 1, 1)):
         """
         Moves molecules a random vector, applies pbcs and writes box dimensions.
 
@@ -168,15 +199,12 @@ class PBCPacking:
         universe.dimensions = [*self.box_side, 90, 90, 90]
 
         if move:
-            if pbc == 'xyz':
-                universe.atoms.positions += self.box_side * np.random.random(3)
-                universe.atoms.pack_into_box()
+            maximum_displ = self.box_side * self.input_info['pbc']
+            universe.atoms.positions += maximum_displ * np.random.random(3)
+            universe.atoms.pack_into_box()
             
-            elif pbc == 'xy':
-                universe.atoms.positions += np.array([*self.box_side[:2], 0]) * np.random.random(3)
-                universe.atoms.pack_into_box()
-                
-                universe.atoms.positions = self.rotate_box(universe.atoms.positions, np.array([1, 0, 0]), np.pi)
+            # Rotation in caso of walls to avoid acumulation in one side.
+            # universe.atoms.positions = self.rotate_box(universe.atoms.positions, np.array([1, 0, 0]), np.pi)
 
         universe.atoms.write(final)
 
@@ -212,14 +240,16 @@ class PBCPacking:
         """
         large_mol = self._large_mol_list.pop(0)
         text = f"""
-tolerance 0.8
+tolerance 2
+avoid_overlap yes
+randominitialpoint
 filetype pdb
 output final.pdb
 
 structure {large_mol}
     number 1
     resnumbers 2
-    inside box  {self.box_str}
+    inside box  {self.long_mol_box_str}
 end structure
         """
         self._inp_file.write(text)
@@ -230,7 +260,9 @@ end structure
         """
         large_conf = self._large_mol_list.pop(0)
         text = f"""
-tolerance 0.8
+tolerance 2
+avoid_overlap yes
+randominitialpoint
 filetype pdb
 output final.pdb
 
@@ -246,7 +278,7 @@ structure {large_conf}
     constrain_rotation x {np.random.randint(180)}. 20.
     constrain_rotation y {np.random.randint(180)}. 20.
     constrain_rotation z {np.random.randint(180)}. 20.
-    inside box  {self.box_str}
+    inside box  {self.long_mol_box_str}
 end structure
         """
         self._inp_file.write(text)
@@ -256,7 +288,9 @@ end structure
         Writes the Packmol input to pack the solvent in the existing box.
         """
         text = f"""
-tolerance 1.2
+tolerance 2
+avoid_overlap yes
+randominitialpoint
 filetype pdb
 output boxed.pdb
 
@@ -266,13 +300,13 @@ structure ./final.pdb
     fixed   0.     0.     0.    0.    0.    0.
 end structure
 
-    """
+        """
         for path, amount in self.input_info['solvent'].items():
             text += f"""
 structure {path}
     number {amount}
     resnumbers 2
-    inside box  {self.box_str}
+    inside box  {self.solvent_box_str}
 end structure
 
 """

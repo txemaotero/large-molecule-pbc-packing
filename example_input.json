@@ -1,8 +1,9 @@
 {
     "packmol_executable": "packmol",
+    "pbc": [1, 1, 0],
     "large_molecules": {
         "PEO": {
-            "replace": false,
+            "replace": true,
             "amount": 20,
             "paths": [
                 "../molecules/large/peo_0.pdb",
@@ -26,19 +27,12 @@
                 "../molecules/large/peo_18.pdb",
                 "../molecules/large/peo_19.pdb"
             ]
-        },
-        "PEO2": {
-            "replace": true,
-            "amount": 20,
-            "paths": [
-                "../molecules/large/peo_0.pdb"
-            ]
         }
     },
     "solvent": {
-        "../molecules/ace.pdb": 400,
-        "../molecules/ea.pdb": 200,
-        "../molecules/li.pdb": 200
+        "../molecules/ace.pdb": 100,
+        "../molecules/ea.pdb": 50,
+        "../molecules/li.pdb": 50
     },
-    "box": [60, 80, 50]
+    "box": [55, 53, 100]
 }
