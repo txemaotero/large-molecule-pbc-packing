@@ -1,10 +1,12 @@
 # large-molecule-pbc-packing
 
 This repository provides a python script to generate random molecular
-configurations taking into account periodic boundary conditions for large
-molecules. [Packmol](http://m3g.iqm.unicamp.br/packmol/home.shtml) software is
-required for running this tool so make sure you have it installed and cite it
-if you use this script. 
+configurations taking into account periodic boundary conditions (pbcs) for
+large molecules. It supports partial pbcs, e.g. just in X and Y directions,
+which is realy useful for simulations with interfaces.
+[Packmol](http://m3g.iqm.unicamp.br/packmol/home.shtml) software is required
+for running this tool so make sure you have it installed and cite it if you use
+this script. 
 
 ## How it works?
 
@@ -20,9 +22,10 @@ packed inside that box if it is required.
 
 As it was mentioned, [Packmol](http://m3g.iqm.unicamp.br/packmol/home.shtml) is
 required as well as [python](https://www.python.org) 3.6 or grater and also the
-[numpy](https://numpy.org) python package. 
+[numpy](https://numpy.org) and [MDAnalysis](https://www.mdanalysis.org) python
+packages. 
 
-## How to use it
+## Usage
 
 A basic usage of this tool would be to run in a terminal:
 
@@ -40,9 +43,13 @@ next lines the meaning of each line in this example is commented:
 
 ```js
 {
-    // Specify the paths to the packmol executable, this is, the
+    // Specify the path to the packmol executable, this is, the
     // command that you use to run packmol
     "packmol_executable": "packmol",
+    // "pbc" is a list with three 0 or 1 refering to apply pbc in the (x, y, z)
+    // direction respectively. If the value is 1, pbcs are applied, else they 
+    // are not. Its optional, by default pbcs are applied in the thre directions.
+    "pbc": [1, 1, 0],
     // "box" is a list of floats corresponding to the dimension of the box in
     // the x, y and z directions. If the list has just one value a cubic box
     // will be created.
